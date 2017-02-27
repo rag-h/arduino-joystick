@@ -5,42 +5,46 @@
  * @author: Harry J.E Day
  */
 #include <Arduino.h>
+#include <inttypes.h>
 
-const int MAGIC_1 = 0xBEEF;
-const int MAGIC_2 = 0xF00D;
+const uint16_t MAGIC_1 = 0xBEEF;
+const uint16_t MAGIC_2 = 0xF00D;
 
 /**
  * Struct that represents the commands given to all the rover's joints
  */
 typedef struct _cmd {
 
-    int MAGIC_1;
+    uint16_t MAGIC_1;
 
     // the direction we want the rover to drive as a vector
     // the units are in m/s
     struct _drive_vector {
-        double x;
-        double y;
-    } drive_vector;
+        float x;
+        float y;
+    } __attribute__((packed)) drive_vector;
 
     // the arm's rotation (rads)
-    double arm_rotation;
+    float arm_rotation;
     // the arm's lower extension (m)
-    double arm_lower_extension;
+    float arm_lower_extension;
     // the arm's upper extension (m)
-    double arm_upper_extension;
+    float arm_upper_extension;
 
     // the claw's rotation speed (rad/s)
-    double claw_rot_speed;
+    float claw_rot_speed;
     //the claw's grip position (in pwm - get someone to explain this to you)
-    double claw_grip_pwm;
+    float claw_grip_pwm;
 
-    int MAGIC_2;
-} Cmd;
+    uint16_t MAGIC_2;
+} __attribute__((packed)) Cmd;
+
+//  NOTE: on some arduinos double is 4 bytes here, so we need to use float
+// otherwise our struct changes size and breaks everything
 
 typedef struct _to_arduino {
-   int magic;
-} To_Arduino;
+   uint16_t magic;
+} __attribute__((packed)) To_Arduino;
 
 /**
  * This is used as part of the serialisation process
@@ -48,7 +52,7 @@ typedef struct _to_arduino {
 typedef struct _msg_adaptor {
     union {
         Cmd cmd;
-        byte buffer[sizeof(Cmd)];
+        char buffer[sizeof(Cmd)];
     };
 } Msg_Adaptor;
 
@@ -67,12 +71,12 @@ void setup() {
  * Main loop of the arduino. Handles communication and calling joystick_loop.
  */
 void loop() {
-    byte MAGIC[2] = {0xBE, 0xEF};
+    uint8_t MAGIC[2] = {0xBE, 0xEF};
     bool found_first = false;
     int bytes_read = 0;
     while(Serial.available() > 0) {
-        char val = Serial.read();
-        if(val == MAGIC[0]) {
+        uint8_t val = Serial.read();
+        if(val == MAGIC[1]) {
           bytes_read = 0;
           found_first = true;
         }
@@ -83,11 +87,15 @@ void loop() {
           }
         }
     }
-    Cmd cmd;
-    cmd = joystick_loop();
-    cmd.MAGIC_1 = MAGIC_1;
-    cmd.MAGIC_2 = MAGIC_2;
-    send_msg(cmd);
+    //if(bytes_read > 0) {
+        Cmd cmd;
+        // zero the command struct
+        memset(&cmd, 0, sizeof(Cmd));
+        cmd = joystick_loop();
+        cmd.MAGIC_1 = MAGIC_1;
+        cmd.MAGIC_2 = MAGIC_2;
+        send_msg(cmd);
+    //}
 }
 
 /**
