@@ -26,10 +26,12 @@ typedef struct _cmd {
 
     // the arm's rotation (rads)
     float arm_rotation;
-    // the arm's lower extension (m)
-    float arm_lower_extension;
-    // the arm's upper extension (m)
-    float arm_upper_extension;
+    // the arm's lower extension speed
+    // (pwm. 1500 is stop, 2000 is full outwards, 1000 is full backwards)
+    float arm_lower_pwm;
+    // the arm's upper extension speed
+    // (pwm. 1500 is stop, 2000 is full outwards, 1000 is full backwards)
+    float arm_upper_pwm;
 
     // the claw's rotation speed (rad/s)
     float claw_rot_speed;
