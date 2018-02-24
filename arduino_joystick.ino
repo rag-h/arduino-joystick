@@ -108,8 +108,109 @@ Cmd joystick_loop() {
     Cmd command;
 
     // Add you code here to control the rover
-    command.drive_vector.x = 1.0;
-    command.drive_vector.y = 1.0;
+    //What we've got so far -> speed control has been tested, not the arm stuff
+    //THE FOLLOWING CODE CONTROLS THE MOVEMENT OF THE ROVER ITSELF (FORWARDS, BACKWARDS, LEFT AND RIGHT)
+    //About 90% working (DeadZones have not been Normalised)
+    int yaxis = analogRead(A0);
+    int xaxis = analogRead(A1);
+    //Sensor reading from the potentiometer
+    //This is the speed-control 
+    double sensorValue = analogRead(A2); 
+    //remapping the yaxis vector between 0 and the reading form the potentiometer reading
+    double remapy;
+    //remapping the xaxis vector between 0 and the reading form the potentiometer reading 
+    double remapx;          
+    
+    if((yaxis >= 493 && yaxis <= 553)&&(xaxis >= 493 && xaxis <= 553)){ //No movement
+       command.drive_vector.y = 0.00; 
+       command.drive_vector.x = 0.00;
+    }else if((yaxis >= 553)&&(xaxis >= 493 && xaxis <= 553)){      //FORWARDS
+        remapy = map(yaxis, 553, 1023,0, sensorValue);
+        command.drive_vector.y = remapy/1023; 
+        command.drive_vector.x = 0.00;                            
+    }else if((yaxis <= 493)&&(xaxis >= 493 && xaxis <= 553)){      //BACKWARDS
+        remapy = map(yaxis, 493, 0,0, sensorValue);
+        command.drive_vector.y = -(remapy/1023);
+        command.drive_vector.x = 0.00;
+    }else if((yaxis >= 493 && yaxis <= 553)&&(xaxis >= 553)){      //LEFT
+        remapx = map(xaxis, 553, 1023,0, sensorValue);
+        command.drive_vector.y = 0.00;
+        command.drive_vector.x = remapx/1023;
+    }else if((yaxis >= 493 && yaxis <= 553)&&(xaxis <= 493)){      //RIGHT
+        remapx = map(xaxis, 493, 0,0, sensorValue);
+        command.drive_vector.y = 0.00;
+        command.drive_vector.x = -(remapx/1023);
+    }else if(yaxis >= 553 && xaxis >= 553){       //TOP-LEFT
+        remapy = map(yaxis, 553,1023,0,sensorValue);
+        remapx = map(xaxis, 553, 1023,0, sensorValue); 
+          command.drive_vector.y = (remapy)/1023;
+          command.drive_vector.x = (remapx)/1023;            
+    }else if(yaxis >= 553 && xaxis <= 493){       //TOP-RIGHT
+        remapy = map(yaxis, 553,1023,0,sensorValue);
+        remapx = map(xaxis, 493, 0,0, sensorValue);
+        command.drive_vector.y = (remapy)/1023;
+        command.drive_vector.x = -((remapx)/1023);
+    }else if(yaxis <= 493 && xaxis >= 553){       //BOTTOM-LEFT
+        remapy = map(yaxis, 493, 0,0, sensorValue);
+        remapx = map(xaxis, 553, 1023,0, sensorValue);
+        command.drive_vector.y = -((remapy)/1023);
+        command.drive_vector.x = (remapx)/1023;
+    }else if(yaxis <= 493 && xaxis <= 493){       //BOTTOM-RIGHT
+        remapy = map(yaxis, 493, 0,0, sensorValue);
+        remapx = map(xaxis, 493, 0,0, sensorValue);
+        command.drive_vector.y = -((remapy)/1023);
+        command.drive_vector.x = -((remapx )/1023);
+    }
+    
+      
+    //THE FOLLOWING CODE CONTROLS THE ARM MOVEMENT OF THE ROVER (USING BUTTONS)
+    
+    //LOWER ARM      
+    if(digitalRead(ARM_LOWER_EXTEND) == HIGH){     
+      command.arm_lower_pwm = 2000;      
+    }else if(digitalRead(ARM_LOWER_RETRACT) == HIGH){
+      command.arm_lower_pwm = 1000;
+    }else{         
+      command.arm_lower_pwm = 1500;
+    } 
+    
+    //UPPER ARM    
+    if(digitalRead(ARM_UPPER_EXTEND) == HIGH){     
+      command.arm_upper_pwm = 1000;      
+    }else if(digitalRead(ARM_UPPER_RETRACT) == HIGH){
+      command.arm_upper_pwm = 2000;
+    }else{         
+      command.arm_upper_pwm = 1500;
+    }      
+
+  /*  //ARM ROTATION
+    if(digitalRead(ARM_ROTATE_LEFT) == HIGH){
+      //DO-COMMAND
+    }else if(digitalRead(ARM_ROTATE_RIGHT) == HIGH){
+      //DO-COMMAND
+    }else{
+      //DO COMMMAND
+    }
+
+    
+    //CLAW ROTATION
+    if(digitalRead(CLAW_ROTATE_LEFT) == HIGH){
+      //DO-COMMAND
+    }else if(digitalRead(CLAW_ROTATE_RIGHT) == HIGH){
+      //DO-COMMAND
+    }else{
+      //DO COMMMAND
+    }
+
+    
+    //CLAW GRIP
+    if(digitalRead(CLAW_GRIP) == HIGH){
+      //DO-COMMAND
+    }else if(digitalRead(CLAW_UNGRIP) == HIGH){
+      //DO-COMMAND
+    }else{
+      //DO COMMMAND
+    } */
 
     return command;
 }
